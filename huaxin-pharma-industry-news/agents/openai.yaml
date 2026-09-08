@@ -1,7 +1,7 @@
 interface:
   display_name: "华鑫医药行业新闻"
   short_description: "筛选核验医药魔方Info周内行业新闻并管理证据状态"
-  default_prompt: "使用 $huaxin-pharma-industry-news 筛选并核验本周医药魔方Info行业新闻，不使用阅读量，排除活动邀请与广告，并分别报告内容和证据状态。"
+  default_prompt: "使用 $huaxin-pharma-industry-news 更新本周行业新闻，以附件或内置模板生成配套 PPTX 和 Excel 证据底稿；核验原文、排除活动广告、图片分放不重叠，完成保存后检查并交付两个文件。"
 
 policy:
   allow_implicit_invocation: true

@@ -1,11 +1,13 @@
 ---
 name: huaxin-pharma-industry-news
-description: "Select, verify, rank, and package the Industry News section of a Huaxin pharmaceutical weekly report from original 医药魔方Info articles. Use for 华鑫医药周报行业新闻, P23-24行业新闻, 医药魔方Info weekly selection, first-paragraph extraction, promotional-content filtering, or evidence-status repair."
+description: "Update 华鑫医药周报行业新闻 / P23-24 from 医药魔方Info and deliver a matched editable PPTX and evidence XLSX using supplied or bundled templates. Includes source selection, exact first-paragraph text, non-overlapping evidence images, and saved-file QA. Use for industry-news refreshes; JSON-only selection is an explicit optional mode."
 ---
 
 # Huaxin Pharma Industry News
 
-Produce an auditable weekly Industry News selection without using reading counts or interaction metrics. This skill is self-contained and may be used alone or alongside presentation/spreadsheet tooling when the user also requests artifact edits.
+Default deliverables for a weekly Industry News refresh are one updated editable PPTX and its matched evidence XLSX. JSON and Markdown are intermediate records, never substitutes for those files. This skill includes the paired templates and the complete production instructions; it does not require a sibling skill or the original author's computer.
+
+Read [references/paired-delivery.md](references/paired-delivery.md) before starting production. An explicit request for selection/list/JSON only uses content-only mode. A request to diagnose or edit this skill changes the rules only, not a report. Respect explicitly requested single-file scope.
 
 ## Start Here
 
@@ -15,7 +17,7 @@ Required task inputs are:
 
 - an explicit date range or an anchor date;
 - access to original 医药魔方Info articles, or candidate records that contain their direct URLs and original text;
-- the target artifact only when the user asks for PPTX/XLSX changes.
+- use the user's latest supplied matched template pair, otherwise `assets/templates/weekly-template.pptx` and `assets/templates/evidence-template.xlsx`. These bundled files are historical layout examples, not current verified news.
 
 If only an anchor date is supplied, use the most recently completed Saturday-through-Friday window. Do not guess a different historical week.
 
@@ -31,9 +33,9 @@ If only an anchor date is supplied, use the most recently completed Saturday-thr
 
 For JSON/CSV-normalized inputs, run `scripts/select_weekly_news.py --help` before first use. The script filters dates and promotions, scores candidates without engagement metrics, and reports content and evidence states separately.
 
-## Artifact Boundary
+## Produce the Pair
 
-Do not edit PPTX/XLSX unless the user asks for artifact changes. When artifact changes are requested, preserve the supplied template and use the relevant presentation/spreadsheet capability. Evidence images must remain separate picture objects, must not be stitched, and must not overlap.
+After selection, continue automatically through native PPT table replacement, saved-slide rendering, mechanical row crops, Excel source evidence insertion, and reopening/validation. Follow `references/paired-delivery.md` and `references/evidence-layout-qa.md`. Do not stop at the selector output or ask whether the user also wants PPT and Excel during a weekly-report refresh. Evidence images remain separate, non-overlapping objects. Missing evidence permits a clearly labelled partial pair; it never permits a false completion claim.
 
 ## Completion
 

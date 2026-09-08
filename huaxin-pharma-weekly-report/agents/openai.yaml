@@ -1,0 +1,4 @@
+interface:
+  display_name: "华鑫医药周报全流程更新"
+  short_description: "按输入门槛更新周报PPT、Excel与逐条来源证据"
+  default_prompt: "使用 $huaxin-pharma-weekly-report。先核对输入合约并运行预检，再按指定范围更新配对的华鑫医药周报 PPTX/XLSX。行业新闻不使用阅读量或互动量，逐条核验医药魔方Info账号、日期、直链和原文首段；单条不合格只淘汰该条，截图暂缺只标记 evidence_pending，不得回退已核验内容或保留旧周新闻冒充更新。最终复检保存后的链接、证据和版式。"

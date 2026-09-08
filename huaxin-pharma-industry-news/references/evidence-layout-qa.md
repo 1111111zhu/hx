@@ -1,0 +1,48 @@
+# Evidence, Layout, and QA Rules
+
+These rules apply to every updated stage.
+
+## Content and Layout Fidelity
+
+- Use the latest user-approved PPTX/XLSX pair and supplied case as the page-by-page layout authority.
+- Check every edited PPT page's font family, size, weight, alignment, table geometry, row heights, page number, footer/source-bar gap, and blank-row behavior. Preserve native editable tables and all non-target slide/workbook content.
+- Preserve the case's alignment exactly: keep populated body cells vertically centered where shown, center date/time and header cells where shown, and do not impose a substitute alignment that differs from the supplied case.
+- Store visible body text as one continuous paragraph with no carriage return, linefeed, Unicode line separator, Unicode paragraph separator, or manually inserted line break. Natural renderer wrapping is allowed. Join Chinese text directly across source line breaks; preserve exactly one ordinary space only where adjacent Latin-letter/number tokens require it. Remove PDF/OCR spaces between Chinese characters or before Chinese punctuation.
+- For the 医药魔方Info first paragraph, preserve every substantive character, including dates, wording, punctuation, and qualifiers. Do not remove or rewrite a date merely because a date column also exists; only remove a mechanically separate marker when the stage rule explicitly documents that operation.
+- Reject visible text containing `三期揭盲`, an industry-news headline, duplicated fragments, an ellipsis replacing source text, a clipped ending, or an untraced substantive sentence.
+- Render every final native table before creating Excel evidence. Every Excel left image must be a mechanical, complete crop of its final rendered PPT row through the last character and punctuation; never retype, ellipsize, independently render, or line-cap it.
+- Preserve each image's natural aspect ratio, pixel dimensions, and readable resolution; never stretch non-proportionally, pad with white canvas, mask borders, create thin image strips to simulate a frame, or stitch multiple screenshots/page regions into one bitmap.
+- When one item needs two or more source screenshots or PDF page regions, insert every source image as a separate picture object. Normalize each anchor to its actual row/column plus in-cell offset, keep a visible gap of at least 12 px between adjacent images, and verify their absolute rectangles do not intersect after reopening in Excel. Expand or shift the purple enclosure and later blocks when needed; never stack images on the same coordinates.
+- Purple cell borders are the authoritative Excel enclosure. Left and right images are independent: align each image's top/bottom/side purple boundary to its own natural rendered bounds. Move or expand each frame/row boundary (and shift later blocks coherently) rather than resizing the image; never move only one side of a shared separator.
+- For 医药魔方Info evidence, crop only the article top through the lower black boundary of the first paragraph, including the boundary and all content above it; omit everything below.
+
+## Source-Link and Evidence Gate
+
+Create one evidence record per item binding the direct final URL, visible URL text, saved hyperlink target, screenshot path/hash, captured source text/fragments, item index, block geometry, and fallback reason if any.
+
+- Use only the exact direct page or file visible in the paired screenshot. Reject search, list, category, home, navigation, tracking, and prior-week URLs; resolve redirects before insertion.
+- The displayed link must be the direct official original (CDE/NMPA/NHSA/NHC/GOV/issuer/CNINFO or verified 医药魔方Info article), not a third-party summary. Show the full URL as plain text and bind that same string to the hyperlink relationship in the same cell.
+- The right screenshot must visibly prove source identity and at least one sourced fact or passage. Its image hash must match the evidence record.
+- Before and after reopening the saved XLSX, XML-decode relationship attributes and require `visible_url == hyperlink_target` character-for-character. Missing hyperlinks or stale `r:id` targets are `failed_validation`.
+- For item `i`, enforce `top purple separator → URL[i] in the first white right-side row → right_image[i] → bottom purple separator`. Align the URL row's top with `left_image[i].top` and require `right_image[i].top >= URL[i].bottom`. A URL on a purple separator, covered by an image, placed in an adjacent block, or paired with `right_image[i-1/i+1]` is `failed_validation`.
+- Require `URL[i]`, its hyperlink, `right_image[i]`, the screenshot title/account/document identifier, and the visible supporting fact to represent the same item. Branding or date alone is not proof of identity.
+- Enforce 2 policy links and 10 company-announcement links when those stage gates pass. For news require one matching source link per actually selected item (target 10); a verified shortfall must not force stale links or invented items. Remove stale relationships from every replaced block.
+
+## Evidence-Sheet Geometry
+
+- `P22行业政策`: use exactly two compact blocks in PPT order. Left: exact final PPT row crop. Right: exact official detail page/file showing title/document identifier, issuer/date where present, and every source fragment used in `主要内容`; never use a list/search page. Show `数据来源官方` and the raw `数据来源文件链接` in separate readable white cells above the screenshot. Preserve the deep-purple header, light-purple first data row, white second row, at least 14 pt body type, centered header/date cells, and left-aligned other body cells.
+- `P23-24行业新闻`: the left row crop fills the complete `A:J` inner width; `K` remains the visible thick purple gutter; the URL occupies the first white right-side row; the matching source image starts at `L` below the URL and fills the right-frame width. Require `abs(left.x-left_frame_inner_x) <= 2 px`, `abs(left.right-K_inner_left_x) <= 2 px`, and equivalent 0-2 px checks on the right image. Target `right.x-left.right = 23 ± 3 px`; negative overlap or a larger gap caused by white placement space fails. Crop the source from the article top through the lower black boundary of the complete first paragraph, retaining title, `医药魔方Info`, publication time, and any mandatory NextPharma banner; exclude everything below and large outer blank gutters. Inspect all 10 blocks individually.
+- `P25-26公司公告`: use exactly 10 compact blocks in PPT order. Left: exact final PPT row crop for `时间 | 代码 | 公司名称 | 公告主题 | 主要内容`. Right: exact official exchange/issuer file screenshot from header through the copied passage, visibly including `证券代码`、`证券简称`、`公告编号` or equivalents. If the evidence spans pages or non-contiguous regions, insert each crop as a separate, non-overlapping picture object with at least 12 px visible spacing; never stitch them into one image. Put the raw direct official URL in the first white row above the matching source images. Target `right.x-left.right = 46 ± 3 px`; negative overlap, hidden gutter, or white placement space fails. Preserve five-digit H-share codes.
+- Inspect every image pair from reopened saved-workbook anchors, actual column widths/row heights, offsets, and absolute pixel rectangles—not intended coordinates alone.
+
+## Final Saved-File QA
+
+1. Reopen the final PPTX and XLSX.
+2. Confirm the Saturday-through-Friday window, target titles, native editable tables, exactly 2/10/10 required counts for updated stages when their gates pass, time-descending display order, exact dates/codes, announcement subjects no longer than six Chinese characters, and all source/evidence gates.
+3. Render every edited slide and target evidence sheet with embedded images visible.
+4. Verify alignment against the case; stored body text contains no hard-return/paragraph-separator, unlogged transformation, `三期揭盲`, news headline, duplicate, ellipsis, or truncated ending.
+5. Verify complete text, intact purple frames/separators, 0-2 px image-to-frame fitting, 23 ± 3 px news gaps, 46 ± 3 px company gaps, same-block URL/image order, direct URLs, matching PPT-row evidence crops, and pairwise non-intersection of every image rectangle. Multi-image evidence must have at least 12 px visible spacing.
+6. Verify every visible URL equals its decoded hyperlink target, opens the exact pictured page/file, and has the expected item-specific screenshot hash; remove stale relationships.
+7. Save `ppt_row_text` and `excel_left_ocr_text`, then run the bundled left-row validator; any nonzero result blocks delivery.
+8. Compare the final workbook inventory with the baseline. Every non-target sheet and protected layout property must match.
+9. Mark complete only when saved artifacts pass all checks. A clearly labelled partial news pair may be delivered with precise evidence/validation gaps; never silently retain stale news or claim full completion.
