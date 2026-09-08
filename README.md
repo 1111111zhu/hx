@@ -1,30 +1,41 @@
 # hx
 
-华鑫医药周报公众号 Word 与图片素材包制作 skill。
+华鑫医药工作流 Skills。
 
-## 使用
+## Skills
 
-将 `huaxin-weekly-wechat-package` 文件夹放入 Codex 的个人 skills 目录，也可使用仓库内的 `.skill` 打包文件。
+### 华鑫医药行业新闻
 
-提供周报 PPTX 后调用：
+目录：[huaxin-pharma-industry-news](huaxin-pharma-industry-news/)
+
+安装包：[huaxin-pharma-industry-news.skill](huaxin-pharma-industry-news.skill)
+
+用于筛选、核验和排序华鑫医药周报 P23-24 行业新闻。仅采用医药魔方Info原创文章，不使用阅读量等互动指标；排除活动、邀请、报名、直播推广和广告内容。内容完成状态与证据图片状态分别管理，多张证据图不得拼接或重叠。
+
+调用示例：
+
+```text
+用 $huaxin-pharma-industry-news 筛选并核验本周医药魔方Info行业新闻。
+```
+
+详细流程见 [SKILL.md](huaxin-pharma-industry-news/SKILL.md)，完整规则见 [industry-news-rules.md](huaxin-pharma-industry-news/references/industry-news-rules.md)。该 Skill 已允许根据任务语义自动调用。
+
+### 华鑫医药周报公众号素材包
+
+目录：[huaxin-weekly-wechat-package](huaxin-weekly-wechat-package/)
+
+安装包：[huaxin-weekly-wechat-package.skill](huaxin-weekly-wechat-package.skill)
+
+用于把华鑫医药周报 PPTX 制作为公众号 Word 与图片素材包。
+
+调用示例：
 
 ```text
 用 $huaxin-weekly-wechat-package 生成这份周报的 Word 和素材包。
 ```
 
-输出仅为一个按日期命名的周报文件夹，内含 `文字.docx`、合规说明图和全部报告页 PNG。
-
-## 固定规则
-
-- 合规说明文字整体居中，首行距上边框与末行距下边框留白相等。
-- Word 末尾保留报告链接和联系人胡博新；无链接时留空，正常生成与交付。
-- 保留所有原报告页，报告图片在后台生成并检查字体与版式。
-- 截屏、导出、渲染等全部后台运行，不占用前台窗口或鼠标键盘。
-- 不生成 ZIP 或其他同级交付文件；临时文件完成检查后删除，最终只保留周报文件夹。
-- 仅制作本地材料，不包含公众号上传或发布操作。
-
 详细流程见 [SKILL.md](huaxin-weekly-wechat-package/SKILL.md)，用户规则见 [规则.md](huaxin-weekly-wechat-package/references/规则.md)。
 
-## 环境
+## 安装
 
-此流程面向 macOS 和 Microsoft PowerPoint，优先使用不影响前台的 PowerPoint 导出能力，必要时使用其他后台渲染方案并验证版式；需要 Word 创建、后台渲染与图片检查工具。合规模板已包含在 skill 的 assets 目录中。
+将所需 Skill 文件夹复制到 Codex 的个人 skills 目录，或使用仓库内对应的 `.skill` 安装包。
