@@ -19,6 +19,7 @@ DATE_FORMATS = (
 )
 TITLE_KEYS = ("title", "headline", "name")
 DATE_KEYS = ("published_at", "publish_time", "published", "publishedAt", "date", "time")
+PPT_DATE_KEYS = ("ppt_date", "pptDate", "first_paragraph_date", "firstParagraphDate", "event_date")
 URL_KEYS = ("url", "link", "href", "article_url", "articleUrl", "source_url", "sourceUrl")
 CONTENT_KEYS = (
     "first_paragraph_raw", "canonical_text", "source_content", "exact_excerpt",
@@ -88,6 +89,28 @@ def parse_datetime(raw: Any) -> datetime | None:
         year, month, day, hour, minute, second = match.groups()
         return datetime(int(year), int(month), int(day), int(hour or 0), int(minute or 0), int(second or 0))
     return None
+
+
+def normalize_ppt_date(raw: Any) -> str:
+    text = str(raw or "").strip()
+    match = re.search(r"(?:\d{4}\s*[年\-/.]\s*)?(\d{1,2})\s*(?:月|[.\-/])\s*(\d{1,2})\s*(?:日|号)?", text)
+    if not match:
+        return ""
+    month, day = int(match.group(1)), int(match.group(2))
+    if not (1 <= month <= 12 and 1 <= day <= 31):
+        return ""
+    return f"{month:02d}.{day:02d}"
+
+
+def ppt_body(source_content: str, ppt_date: str) -> str:
+    if not ppt_date:
+        return source_content.strip()
+    month, day = (int(part) for part in ppt_date.split("."))
+    pattern = re.compile(
+        rf"^\s*(?:\d{{4}}\s*[年\-/.]\s*)?0?{month}\s*(?:月|[.\-/])\s*0?{day}\s*(?:日|号)?\s*[，,、：:]?\s*"
+    )
+    body = pattern.sub("", source_content, count=1).strip()
+    return body or source_content.strip()
 
 
 def current_cycle(anchor: date) -> tuple[datetime, datetime]:
@@ -210,6 +233,7 @@ def main() -> None:
             url = str(first_value(record, URL_KEYS) or "").strip()
             source_content = str(first_value(record, CONTENT_KEYS) or "").strip()
             published = parse_datetime(first_value(record, DATE_KEYS))
+            display_date = normalize_ppt_date(nested_value(record, PPT_DATE_KEYS)) or normalize_ppt_date(source_content)
             if not title or not url or not source_content or published is None:
                 continue
             if not is_info_wechat_url(url):
@@ -218,6 +242,9 @@ def main() -> None:
                 continue
             if is_invitation_or_event_promotion(title, source_content):
                 rejected_candidates.append({"title": title, "article_url": url, "reason": "invitation_or_event_promotion"})
+                continue
+            if not display_date:
+                rejected_candidates.append({"title": title, "article_url": url, "reason": "first_paragraph_date_missing"})
                 continue
             key_url, key_title = normalize(url), normalize(title)
             if key_url in seen_urls or key_title in seen_titles:
@@ -230,6 +257,8 @@ def main() -> None:
                     "article_url": url,
                     "source": "医药魔方Info",
                     "published_at": published.isoformat(sep=" ", timespec="seconds"),
+                    "ppt_date": display_date,
+                    "ppt_body": ppt_body(source_content, display_date),
                     "source_content": source_content,
                     "source_evidence": str(nested_value(record, SOURCE_EVIDENCE_KEYS) or ""),
                     "source_capture_time": str(

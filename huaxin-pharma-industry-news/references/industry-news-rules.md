@@ -20,9 +20,10 @@ Do not reject a factual news report merely because it says an event occurred. Re
 
 - Capture the complete topmost substantive paragraph from the original article.
 - Store an untouched canonical copy of that paragraph.
-- Preserve wording, punctuation, figures, names, dates, and qualifiers exactly.
+- Preserve wording, punctuation, figures, names, dates, and qualifiers exactly in the canonical source field.
 - Do not use an aggregator abstract, headline, editor's note, image caption, recommendation block, or a later paragraph as a substitute.
-- Do not summarize, shorten, reorder, add a lead sentence, prepend the headline, or add a reporting date. A date may remain only when it is part of the source paragraph.
+- Do not summarize, shorten, reorder, add a lead sentence, prepend the headline, or add a reporting date.
+- For PPT rows, split the topmost paragraph into two display fields: the date column uses the date stated in that first paragraph, not the WeChat/article publication date; the body column must not add a date prefix. If the paragraph begins with that date marker, remove only that leading marker from the PPT body and keep the remaining wording unchanged. Other substantive dates inside the paragraph remain untouched. If the first paragraph has no explicit date, stop and ask rather than substituting the article publication date.
 - Visual line wrapping is formatting and must not alter stored text.
 
 ## Ranking and Count
@@ -62,6 +63,7 @@ The bundled selector accepts a JSON array or an object containing `items`, `reco
 
 - title: `title`, `headline`, `name`
 - publication time: `published_at`, `publish_time`, `published`, `publishedAt`, `date`, `time`
+- PPT first-paragraph date: `ppt_date`, `pptDate`, `first_paragraph_date`, `firstParagraphDate`, `event_date`
 - URL: `url`, `link`, `href`, `article_url`, `articleUrl`, `source_url`, `sourceUrl`
 - paragraph: `first_paragraph_raw`, `canonical_text`, `source_content`, `exact_excerpt`, `content`, `body`, `article_text`, `excerpt`
 - source: `source`, `source_name`, `sourceName`, `publisher`, `media`

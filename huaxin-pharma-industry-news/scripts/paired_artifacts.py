@@ -81,9 +81,10 @@ def check(args):
                         links.add(rel.attrib.get('Target', ''))
     for i, item in enumerate(items, 1):
         body = next((item[k] for k in ('first_paragraph_raw', 'canonical_text', 'source_content') if item.get(k)), '')
+        ppt_body = item.get('ppt_body') or body
         url = next((item[k] for k in ('article_url', 'url', 'articleUrl') if item.get(k)), '')
-        if not body or body not in cells:
-            errors.append(f'Item {i}: complete source paragraph missing from native PPT table cell.')
+        if not ppt_body or ppt_body not in cells:
+            errors.append(f'Item {i}: PPT display body missing from native PPT table cell.')
         if not url or url not in links:
             errors.append(f'Item {i}: Excel hyperlink missing.')
     result = {'structural_status': 'failed' if errors else 'passed', 'errors': errors,
