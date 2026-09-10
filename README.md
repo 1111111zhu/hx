@@ -44,6 +44,21 @@
 
 详细流程见 [SKILL.md](huaxin-weekly-wechat-package/SKILL.md)，用户规则见 [规则.md](huaxin-weekly-wechat-package/references/规则.md)。
 
+### 通用文章外发
+
+目录：[通用文章外发](通用文章外发/)，安装包：[通用文章外发.skill](通用文章外发.skill)。
+
+用于将华鑫证券研究报告 Word 按固定规则制作成公众号首图和正文；配置使用者自己的公众号 API 后，可上传素材并创建草稿，但不提供发布命令。
+
+首次在本机配置 API：
+
+```text
+cd 通用文章外发
+sh scripts/setup_local_api.sh
+```
+
+真实 AppID、AppSecret、access token 和账号密码不进入仓库；每个使用者单独配置自己的账号和 IP 白名单。
+
 ## 安装
 
 将所需 Skill 文件夹复制到 Codex 的个人 skills 目录，或使用仓库内对应的 `.skill` 安装包。

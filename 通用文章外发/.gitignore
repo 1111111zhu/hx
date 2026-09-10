@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.secrets/
+*.token
+*.access_token
+__pycache__/
+*.pyc

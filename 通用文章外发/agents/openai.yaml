@@ -1,0 +1,4 @@
+interface:
+  display_name: "通用文章外发"
+  short_description: "按华鑫规则将 Word 研究报告生成公众号正文并安全保存为草稿"
+  default_prompt: "使用通用文章外发处理这份 Word 研究报告，生成首图、公众号正文并在获得确认后保存为草稿，不发布。"
