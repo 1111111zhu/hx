@@ -7,11 +7,11 @@ description: "Refresh a matched Huaxin Pharma weekly-report PPTX/XLSX pair, or o
 
 Deliver one validated PPTX/XLSX pair. JSON and Markdown are intermediate records, not the final weekly-report deliverables. Use the user's supplied matched pair first; otherwise use the bundled `assets/templates/weekly-template.pptx` and `assets/templates/evidence-template.xlsx`. The bundled pair is a historical layout baseline; its old news is not verified current content. Never rebuild the workbook, flatten an editable PPT table, or invent missing source evidence.
 
-For end-to-end industry-news production, read [references/paired-delivery.md](references/paired-delivery.md), then continue from selection through both saved Office files. `scripts/paired_artifacts.py prepare` creates portable working copies and an inventory; `check` rejects unchanged files and selected text/links that were never written. These structural checks do not replace source and visual verification.
+For end-to-end industry-news production, read [references/通用规则/配对交付.md](references/通用规则/配对交付.md), then continue from selection through both saved Office files. `scripts/通用/配对产物.py prepare` creates portable working copies and an inventory; `check` rejects unchanged files and selected text/links that were never written. These structural checks do not replace source and visual verification.
 
 ## Start with the Input Contract
 
-Before editing, read [references/input-and-handoff.md](references/input-and-handoff.md). Confirm that the task includes the actual skill bundle, one unambiguous approved PPTX/XLSX pair, an anchor date, the requested stage scope, and the source/access package required by that scope.
+Before editing, read [references/通用规则/输入与交接.md](references/通用规则/输入与交接.md). Confirm that the task includes the actual skill bundle, one unambiguous approved PPTX/XLSX pair, an anchor date, the requested stage scope, and the source/access package required by that scope.
 
 If the request was forwarded from another user or task, do not assume that local files, scripts, skills, browser sessions, or prior approvals were forwarded with the chat. Apply the readiness gate in the reference. Missing inputs block only the affected stage; they do not authorize lower-quality substitutes.
 
@@ -19,11 +19,11 @@ If the request was forwarded from another user or task, do not assume that local
 
 1. Ignore `~$` lock files. Select one approved PPTX and its matched XLSX. If multiple plausible pairs exist and the approved pair cannot be inferred safely, stop before editing.
 2. Create dated working copies and keep the originals unchanged. Each completed stage becomes the input checkpoint for the next stage.
-3. Run `scripts/preflight_weekly_report.py` with the user-supplied anchor date and save `weekly_run_manifest.json` beside the working copies. The script-defined completed Saturday-through-Friday window is authoritative.
+3. Run `scripts/通用/周报预检.py` with the user-supplied anchor date and save `weekly_run_manifest.json` beside the working copies. The script-defined completed Saturday-through-Friday window is authoritative.
 4. Inventory workbook sheet order, names, visibility, drawings and anchors, used ranges, print/page settings, and freeze panes. Non-target sheets must remain unchanged.
 5. Locate PPT targets by their visible Chinese titles, never by fixed slide numbers.
-6. Read [references/content-rules.md](references/content-rules.md) for the stage or stages being updated.
-7. Read [references/evidence-layout-qa.md](references/evidence-layout-qa.md) before changing PPT or Excel evidence. Its rules apply to every updated stage.
+6. Read [references/通用规则/内容规则总表.md](references/通用规则/内容规则总表.md) for the stage or stages being updated. The category folders under `references/行业新闻/`, `references/公司公告/`, and `references/政府政策/` provide quick routing notes.
+7. Read [references/通用规则/证据版式质检.md](references/通用规则/证据版式质检.md) before changing PPT or Excel evidence. Its rules apply to every updated stage.
 8. Checkpoint after each stage and reopen the saved artifacts before final validation.
 
 ## Stage State and Stop Rules
@@ -77,12 +77,12 @@ Deliver one final PPTX/XLSX pair plus `weekly_run_manifest.json` and any validat
 
 ## Bundled Scripts
 
-- `preflight_weekly_report.py`: validate the pair and create the shared manifest.
-- `extract_wechat_reports.py`: normalize an authorized 医药新观 feed/export.
-- `select_weekly_pharma_policies.py`: filter and rank policy candidates only.
-- `prepare_weekly_medalpha_news.py`: filter and rank the currently available verified 医药魔方Info candidates without engagement metrics; it reports content shortfall and evidence status separately.
-- `tight_crop_wechat_screenshot.py`: crop WeChat evidence images.
-- `select_weekly_pharma_announcements.py`: filter and rank announcement candidates only.
-- `validate_excel_left_row_text.py`: compare final PPT rows with Excel left evidence crops.
+- `scripts/通用/周报预检.py`: validate the pair and create the shared manifest.
+- `scripts/研究成果/医药新观报告提取.py`: normalize an authorized 医药新观 feed/export.
+- `scripts/政府政策/政策筛选.py`: filter and rank policy candidates only.
+- `scripts/行业新闻/医药魔方新闻整理.py`: filter and rank the currently available verified 医药魔方Info candidates without engagement metrics; it reports content shortfall and evidence status separately.
+- `scripts/行业新闻/微信证据截图裁剪.py`: crop WeChat evidence images.
+- `scripts/公司公告/公告筛选.py`: filter and rank announcement candidates only.
+- `scripts/通用/左侧行文本校验.py`: compare final PPT rows with Excel left evidence crops.
 
 Run a script with `--help` before first use. Selection scripts may reject or rank candidates; they must never rewrite copied source text.
