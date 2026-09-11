@@ -38,11 +38,12 @@ Create one evidence record per item binding the direct final URL, visible URL te
 ## Final Saved-File QA
 
 1. Reopen the final PPTX and XLSX.
-2. Confirm the Saturday-through-Friday window, target titles, native editable tables, exactly 2/10/10 required counts for updated stages when their gates pass, time-descending display order, exact dates/codes, announcement subjects no longer than six Chinese characters, and all source/evidence gates.
+2. Confirm the Saturday-through-Friday window, target titles, native editable tables, exactly 2/10/10 required counts for updated stages when their gates pass, time-descending display order, exact dates/codes, company-announcement PPT subjects of exactly four Chinese characters, and all source/evidence gates.
 3. Render every edited slide and target evidence sheet with embedded images visible.
 4. Verify alignment against the case; stored body text contains no hard-return/paragraph-separator, unlogged transformation, `三期揭盲`, news headline, duplicate, ellipsis, or truncated ending.
 5. Verify complete text, intact purple frames/separators, 0-2 px image-to-frame fitting, 23 ± 3 px news gaps, 46 ± 3 px company gaps, same-block URL/image order, direct URLs, matching PPT-row evidence crops, and pairwise non-intersection of every image rectangle. Multi-image evidence must have at least 12 px visible spacing.
 6. Verify every visible URL equals its decoded hyperlink target, opens the exact pictured page/file, and has the expected item-specific screenshot hash; remove stale relationships.
 7. Save `ppt_row_text` and `excel_left_ocr_text`, then run the bundled left-row validator; any nonzero result blocks delivery.
-8. Compare the final workbook inventory with the baseline. Every non-target sheet and protected layout property must match.
-9. Mark complete only when saved artifacts pass all checks. A clearly labelled partial news pair may be delivered with precise evidence/validation gaps; never silently retain stale news or claim full completion.
+8. For every updated policy and company-announcement row, save the exact `display_body`, clause-level source trace, separately added `connector_trace`, right-image object IDs, and right-image OCR/manual transcription. Remove the logged neutral connectors from the coverage comparison, then confirm that every remaining source character occurs in the cited official passage with identical wording, figures, dates, qualifiers, and punctuation. Missing, clipped, illegible, paraphrased, or unsupported source text blocks completion; connector text need not appear in the screenshot.
+9. Compare the final workbook inventory with the baseline. Every non-target sheet and protected layout property must match.
+10. Mark complete only when saved artifacts pass all checks. A clearly labelled partial news pair may be delivered with precise evidence/validation gaps; never silently retain stale news or claim full completion.

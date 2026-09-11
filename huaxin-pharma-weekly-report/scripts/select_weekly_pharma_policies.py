@@ -21,7 +21,7 @@ TITLE_KEYS = ("title", "file_name", "name", "headline")
 DATE_KEYS = ("published_at", "publish_date", "published", "date", "time")
 URL_KEYS = ("url", "link", "href", "official_url", "source_url")
 ISSUER_KEYS = ("issuer", "agency", "publisher", "department")
-CONTENT_KEYS = ("core_content", "main_content", "summary", "content", "body")
+CONTENT_KEYS = ("canonical_text", "original_text", "excerpt", "core_content", "main_content", "content", "body")
 SOURCE_KEYS = ("source", "source_name", "site")
 SCORE_KEYS = ("impact_score", "score", "importance")
 
@@ -52,6 +52,13 @@ NORMATIVE_MARKERS = (
     "指南", "指导意见", "管理办法", "管理规定", "实施办法", "工作方案", "立项指南",
     "价格项目", "支付标准", "医保目录", "集中采购", "审评指导原则", "监管规则",
     "技术指导原则", "服务价格",
+)
+SYSTEM_CHANGE_MARKERS = (
+    "医保目录", "支付", "集中采购", "集采", "采购", "价格", "市场准入",
+    "审评审批", "监管", "临床服务", "药品管理", "医疗器械",
+)
+IMPLEMENTATION_FORCE_MARKERS = (
+    "全国", "施行", "实施", "应当", "不得", "管理办法", "管理规定", "条例", "规则",
 )
 REGULATORY_FALLBACK_MARKERS = (
     "附条件批准", "批准上市", "获批上市", "创新药", "1类新药", "一类新药",
@@ -143,16 +150,20 @@ def as_number(value: Any) -> float:
 def selection_tier(record: dict[str, Any], title: str, content: str) -> int | None:
     category = str(record.get("category") or "").lower()
     text = f"{title} {content} {category}".lower()
-    if any(marker.lower() in text for marker in NORMATIVE_MARKERS):
+    if any(marker.lower() in text for marker in SYSTEM_CHANGE_MARKERS) and any(
+        marker.lower() in text for marker in IMPLEMENTATION_FORCE_MARKERS
+    ):
         return 1
-    if any(marker.lower() in text for marker in REGULATORY_FALLBACK_MARKERS):
+    if any(marker.lower() in text for marker in NORMATIVE_MARKERS):
         return 2
+    if any(marker.lower() in text for marker in REGULATORY_FALLBACK_MARKERS):
+        return 3
     return None
 
 
 def heuristic_impact(title: str, content: str, tier: int) -> float:
     text = f"{title} {content}".lower()
-    score = 100.0 if tier == 1 else 60.0
+    score = {1: 120.0, 2: 90.0, 3: 60.0}[tier]
     weights = {
         "全国": 18, "医保": 18, "价格": 18, "支付": 16, "集采": 16,
         "规范整合": 12, "创新药": 16, "1类": 14, "附条件批准": 16,
@@ -231,7 +242,7 @@ def main() -> None:
         "count": len(records),
         "required_count": max_count,
         "shortfall": max(0, max_count - len(records)) if max_count else 0,
-        "fallback_used": any(item["selection_tier"] == 2 for item in records),
+        "fallback_used": any(item["selection_tier"] == 3 for item in records),
         "sources_used": sorted({item["source"] for item in records}),
         "items": records,
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Select weekly pharma announcements by tier and concise subject (maximum six Chinese characters)."""
+"""Select weekly pharma announcements by tier and an exact four-Chinese-character PPT subject."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ DATE_KEYS = ("published_at", "disclosed_at", "publish_time", "announcement_time"
 CODE_KEYS = ("code", "stock_code", "security_code", "ticker")
 COMPANY_KEYS = ("company_name", "short_name", "security_name", "company")
 SUBJECT_KEYS = ("subject", "title", "announcement_title", "headline")
-CONTENT_KEYS = ("main_content", "content", "body", "original_text", "excerpt")
+CONTENT_KEYS = ("canonical_text", "original_text", "excerpt", "main_content", "content", "body")
 ORIGINAL_URL_KEYS = ("original_file_url", "file_url", "attachment_url", "announcement_url", "url", "link")
 RECORD_URL_KEYS = ("record_url", "source_url", "page_url", "origin_url")
 INDUSTRY_KEYS = ("industry", "industry_name", "sector", "classification")
@@ -39,9 +39,9 @@ IMPACT_WEIGHTS = {
     "实际控制人": 40, "控股股东": 38, "大股东": 32, "持股": 30, "减持": 34, "增持": 32,
     "股权转让": 34, "要约收购": 38, "控制权": 40, "质押": 28, "冻结": 28,
     "重大资产重组": 38, "并购": 36, "收购": 36, "重大投资": 30, "融资": 28,
-    "回购": 25, "注销": 25, "业绩预告": 26, "利润": 20, "亏损": 24,
+    "回购": 25, "注销": 25, "业绩预告": 48, "营业收入": 42, "归母净利润": 46, "利润": 34, "亏损": 40,
     "担保": 22, "诉讼": 27, "处罚": 28, "立案": 30, "退市": 40, "停牌": 30,
-    "获批": 24, "上市申请": 23, "临床": 18, "合作": 18, "授权": 22,
+    "获批": 24, "上市申请": 23, "临床": 38, "合作": 18, "授权": 22,
     "全球首个": 48, "全球首款": 48, "关键性临床": 38, "iii期": 36, "ⅲ期": 36,
     "首例患者": 30, "主要终点": 34, "全部研究终点": 38, "所有研究终点": 38,
     "fda": 34, "ema": 34, "快速通道": 32, "突破性疗法": 34,
@@ -73,6 +73,8 @@ NO_MATERIAL_IMPACT_MARKERS = (
     "不会对公司产生重大影响", "不影响公司正常经营", "不构成重大资产重组",
 )
 FIRST_TIER_LABELS = {
+    "业绩预告": ("业绩预告", "盈利预警", "预计亏损", "预亏"),
+    "业绩公告": ("业绩公告", "业绩快报", "半年度报告", "年度报告摘要", "季度报告", "营业收入", "归属于上市公司股东的净利润", "归母净利润"),
     "新药获批": ("新药获批", "获批上市", "批准上市", "药品注册证书", "首次商业化上市"),
     "临床进展": (
         "临床进展", "临床试验", "临床获批", "ind获批", "达到主要终点", "完成入组",
@@ -106,8 +108,6 @@ FIRST_TIER_LABELS = {
     "股份冻结": ("股份冻结", "司法冻结", "轮候冻结"),
 }
 SECOND_TIER_LABELS = {
-    "业绩预告": ("业绩预告",),
-    "业绩公告": ("业绩公告", "半年度报告", "年度报告摘要", "季度报告"),
     "定增获批": ("定增获批", "向特定对象发行", "同意注册批复"),
     "股权转让": ("股权转让", "协议转让"),
     "股份回购": ("股份回购", "回购股份"),
@@ -120,8 +120,14 @@ SECOND_TIER_LABELS = {
     "股权激励": ("股权激励", "限制性股票激励"),
     "医保纳入": ("医保纳入", "纳入医保", "医保目录"),
     "集采中标": ("集采中标", "中选集采", "带量采购中选"),
-    "盈利预警": ("盈利预警", "预计亏损", "预亏"),
-    "业绩快报": ("业绩快报",),
+}
+
+TOP_PRIORITY_LABELS = {"业绩预告", "业绩公告", "临床进展", "临床失败"}
+SECOND_PRIORITY_LABELS = {"新药获批", "海外获批", "并购重组", "控制变更", "许可交易", "许可终止"}
+THIRD_PRIORITY_LABELS = {
+    "破产重整", "退市风险", "重大诉讼", "债务违约", "审计非标", "重大处罚",
+    "产品召回", "核心停产", "质押风险", "股份冻结", "定增获批", "股权转让",
+    "重大投资", "资产出售", "债务重组", "资产减值", "商誉减值",
 }
 
 
@@ -259,15 +265,18 @@ def impact_score(subject: str, content: str, supplied: float | None) -> float:
 
 def classify_priority(subject: str, content: str) -> tuple[int, str] | None:
     text = f"{subject} {content}".lower()
-    # Specific pivotal-result labels should outrank the generic clinical label.
-    specific_first = ["临床失败", "许可终止", "产品退市", "安全警示", "海外获批"]
-    ordered_first = specific_first + [label for label in FIRST_TIER_LABELS if label not in specific_first]
-    for label in ordered_first:
-        if any(marker.lower() in text for marker in FIRST_TIER_LABELS[label]):
-            return 1, label
-    for label, markers in SECOND_TIER_LABELS.items():
-        if any(marker.lower() in text for marker in markers):
-            return 2, label
+    labels = {**FIRST_TIER_LABELS, **SECOND_TIER_LABELS}
+    preferred_order = ["业绩预告", "业绩公告", "临床失败", "临床进展"]
+    ordered = preferred_order + [label for label in labels if label not in preferred_order]
+    for label in ordered:
+        if any(marker.lower() in text for marker in labels[label]):
+            if label in TOP_PRIORITY_LABELS:
+                return 1, label
+            if label in SECOND_PRIORITY_LABELS:
+                return 2, label
+            if label in THIRD_PRIORITY_LABELS:
+                return 3, label
+            return 4, label
     return None
 
 
@@ -292,14 +301,14 @@ def materiality_gate(
     explicit_reason = str(first_value(raw, MATERIALITY_RATIONALE_KEYS) or "").strip()
     amount = max_amount_cny(text)
     percent = max_percent(text)
-
-    if any(marker in text for marker in NO_MATERIAL_IMPACT_MARKERS):
-        return False, 0.0, "公告原文明确表示不产生重大/显著影响。"
     classified = classify_priority(subject, content)
+
+    if any(marker in text for marker in NO_MATERIAL_IMPACT_MARKERS) and (classified is None or classified[0] > 1):
+        return False, 0.0, "公告原文明确表示不产生重大/显著影响。"
     if classified is not None:
         tier, label = classified
-        score = 100.0 if tier == 1 else 75.0
-        return True, score, f"属于第{tier}优先梯队“{label}”，且公告原文未明确否定重大影响。"
+        score = {1: 120.0, 2: 90.0, 3: 75.0, 4: 60.0}[tier]
+        return True, score, f"属于第{tier}优先梯队“{label}”；最终材料性仍须结合核心业务/管线和量化结果复核。"
 
     if explicit_reason and any(marker in explicit_tier for marker in EXPLICIT_MAJOR_TIERS):
         return True, max(float(supplied_score or 0), 80.0), explicit_reason
@@ -346,8 +355,8 @@ def normalized_record(raw: dict[str, Any], path: Path) -> dict[str, Any] | None:
     if priority is None:
         return None
     priority_tier, subject_label = priority
-    if not 1 <= len(subject_label) <= 6 or not all("\u4e00" <= ch <= "\u9fff" for ch in subject_label):
-        raise ValueError(f"Announcement subject must be 1-6 Chinese characters: {subject_label}")
+    if len(subject_label) != 4 or not all("\u4e00" <= ch <= "\u9fff" for ch in subject_label):
+        raise ValueError(f"Announcement PPT subject must be exactly 4 Chinese characters: {subject_label}")
     return {
         "published_at": published.isoformat(sep=" ", timespec="seconds"),
         "code": (
@@ -419,19 +428,7 @@ def main() -> None:
         selected.extend(fill_pool[: max(0, args.count - len(selected))])
     else:
         required_half_year = 0
-        first_tier = sorted((item for item in candidates if item["priority_tier"] == 1), key=rank_key)
-        second_tier = sorted((item for item in candidates if item["priority_tier"] == 2), key=rank_key)
-        selected = first_tier[: args.count]
-        if len(selected) < args.count:
-            remaining = args.count - len(selected)
-            earnings_labels = {"业绩预告", "业绩公告", "业绩快报", "盈利预警"}
-            earnings = [item for item in second_tier if item["subject"] in earnings_labels]
-            other_second = [item for item in second_tier if item["subject"] not in earnings_labels]
-            preferred_earnings = earnings[: min(2, remaining)]
-            selected.extend(preferred_earnings)
-            remaining = args.count - len(selected)
-            fill_pool = sorted(other_second + earnings[len(preferred_earnings):], key=rank_key)
-            selected.extend(fill_pool[:remaining])
+        selected = sorted(candidates, key=tier_rank_key)[: args.count]
     selected.sort(key=lambda item: item["published_at"], reverse=True)
     output = {
         "range_start": start.date().isoformat(),
