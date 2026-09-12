@@ -125,6 +125,42 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", "", text).lower()
 
 
+def primary_issuer(issuer: str) -> str:
+    parts = [part.strip() for part in re.split(r"[、,，;；/／\s]+", issuer) if part.strip()]
+    return parts[0] if parts else issuer.strip()
+
+
+def concise_source_text(text: str, max_chars: int = 110) -> str:
+    compact = re.sub(r"\s+", " ", text).strip()
+    if len(compact) <= max_chars:
+        return compact
+    sentences = re.findall(r"[^。；;！？!?]+[。；;！？!?]?", compact) or [compact]
+    result = ""
+    for sentence in sentences:
+        candidate = result + sentence
+        if len(candidate) > max_chars and result:
+            break
+        result = candidate
+        if len(result) >= int(max_chars * 0.65):
+            break
+    if result and len(result) <= max_chars:
+        return result.strip()
+    clauses = re.findall(r"[^，,。；;！？!?]+[，,。；;！？!?]?", compact) or [compact]
+    result = ""
+    for clause in clauses:
+        candidate = result + clause
+        if len(candidate) > max_chars and result:
+            break
+        result = candidate
+        if len(result) >= int(max_chars * 0.65):
+            break
+    return re.sub(r"[，,、：:；;\s]+$", "", result or compact[:max_chars]).strip()
+
+
+def month_day(published_at: str) -> str:
+    return published_at[5:10].replace("-", ".")
+
+
 def is_official(url: str) -> bool:
     host = urlparse(url).netloc.lower()
     return any(host == domain or host.endswith("." + domain) for domain in OFFICIAL_DOMAINS)
@@ -190,9 +226,12 @@ def normalized_record(raw: dict[str, Any]) -> dict[str, Any] | None:
     supplied_score = as_number(first_value(raw, SCORE_KEYS))
     return {
         "published_at": published.isoformat(sep=" ", timespec="seconds"),
+        "ppt_date": month_day(published.date().isoformat()),
         "title": title,
-        "issuer": issuer,
-        "core_content": content,
+        "issuer": primary_issuer(issuer),
+        "full_issuer": issuer,
+        "core_content": concise_source_text(content),
+        "canonical_content": content,
         "url": url,
         "evidence_url": str(raw.get("evidence_url") or url).strip(),
         "source": str(first_value(raw, SOURCE_KEYS) or urlparse(url).netloc).strip(),

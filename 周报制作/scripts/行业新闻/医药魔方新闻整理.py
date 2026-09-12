@@ -101,13 +101,25 @@ def normalize_ppt_date(raw: Any) -> str:
 
 def ppt_body(source_content: str, ppt_date: str) -> str:
     if not ppt_date:
-        return source_content.strip()
+        return strip_parenthetical_text(source_content.strip())
     month, day = (int(part) for part in ppt_date.split("."))
     pattern = re.compile(
         rf"^\s*(?:\d{{4}}\s*[年\-/.]\s*)?0?{month}\s*(?:月|[.\-/])\s*0?{day}\s*(?:日|号)?\s*[，,、：:]?\s*"
     )
     body = pattern.sub("", source_content, count=1).strip()
-    return body or source_content.strip()
+    return strip_parenthetical_text(body or source_content.strip())
+
+
+def strip_parenthetical_text(text: str) -> str:
+    cleaned = text
+    for _ in range(4):
+        next_text = re.sub(r"（[^（）]*）|\([^()]*\)", "", cleaned)
+        if next_text == cleaned:
+            break
+        cleaned = next_text
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = re.sub(r"\s+([，。；、：,.])", r"\1", cleaned)
+    return cleaned.strip()
 
 
 def current_cycle(anchor: date) -> tuple[datetime, datetime]:

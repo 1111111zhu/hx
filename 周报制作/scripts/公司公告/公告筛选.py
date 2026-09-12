@@ -72,6 +72,11 @@ NO_MATERIAL_IMPACT_MARKERS = (
     "不构成重大影响", "不会产生重大影响", "不产生重大影响", "无重大影响", "没有重大影响",
     "不会对公司产生重大影响", "不影响公司正常经营", "不构成重大资产重组",
 )
+NO_MATERIAL_IMPACT_PATTERNS = (
+    re.compile(r"(?:不|不会|未|预计不会|预计不).{0,40}对(?:本)?公司.{0,40}产生(?:重大|重大不利)?影响"),
+    re.compile(r"对(?:本)?公司.{0,40}(?:不产生|不会产生|未产生)(?:重大|重大不利)?影响"),
+)
+SHAREHOLDER_CHANGE_LABELS = {"股东增持", "股东减持"}
 FIRST_TIER_LABELS = {
     "业绩预告": ("业绩预告", "盈利预警", "预计亏损", "预亏"),
     "业绩公告": ("业绩公告", "业绩快报", "半年度报告", "年度报告摘要", "季度报告", "营业收入", "归属于上市公司股东的净利润", "归母净利润"),
@@ -122,7 +127,7 @@ SECOND_TIER_LABELS = {
     "集采中标": ("集采中标", "中选集采", "带量采购中选"),
 }
 
-TOP_PRIORITY_LABELS = {"业绩预告", "业绩公告", "临床进展", "临床失败"}
+TOP_PRIORITY_LABELS = {"业绩预告", "业绩公告", "临床进展", "临床失败", "股东增持", "股东减持"}
 SECOND_PRIORITY_LABELS = {"新药获批", "海外获批", "并购重组", "控制变更", "许可交易", "许可终止"}
 THIRD_PRIORITY_LABELS = {
     "破产重整", "退市风险", "重大诉讼", "债务违约", "审计非标", "重大处罚",
@@ -266,7 +271,7 @@ def impact_score(subject: str, content: str, supplied: float | None) -> float:
 def classify_priority(subject: str, content: str) -> tuple[int, str] | None:
     text = f"{subject} {content}".lower()
     labels = {**FIRST_TIER_LABELS, **SECOND_TIER_LABELS}
-    preferred_order = ["业绩预告", "业绩公告", "临床失败", "临床进展"]
+    preferred_order = ["业绩预告", "业绩公告", "临床失败", "临床进展", "股东增持", "股东减持"]
     ordered = preferred_order + [label for label in labels if label not in preferred_order]
     for label in ordered:
         if any(marker.lower() in text for marker in labels[label]):
@@ -293,6 +298,24 @@ def max_amount_cny(text: str) -> float:
     return max(amounts, default=0.0)
 
 
+def has_no_material_impact(text: str) -> bool:
+    compact = re.sub(r"\s+", "", text)
+    return any(marker in compact for marker in NO_MATERIAL_IMPACT_MARKERS) or any(
+        pattern.search(compact) for pattern in NO_MATERIAL_IMPACT_PATTERNS
+    )
+
+
+def is_large_shareholder_change(text: str, amount: float, percent: float) -> bool:
+    compact = re.sub(r"\s+", "", text)
+    return (
+        "大额" in compact
+        or "持股5%以上" in compact
+        or "5%以上股东" in compact
+        or amount >= 100_000_000
+        or percent >= 5
+    )
+
+
 def materiality_gate(
     raw: dict[str, Any], subject: str, content: str, supplied_score: float | None
 ) -> tuple[bool, float, str]:
@@ -303,10 +326,12 @@ def materiality_gate(
     percent = max_percent(text)
     classified = classify_priority(subject, content)
 
-    if any(marker in text for marker in NO_MATERIAL_IMPACT_MARKERS) and (classified is None or classified[0] > 1):
-        return False, 0.0, "公告原文明确表示不产生重大/显著影响。"
+    if has_no_material_impact(text):
+        return False, 0.0, "公告原文明确表示不对公司产生重大影响，按硬规则排除。"
     if classified is not None:
         tier, label = classified
+        if label in SHAREHOLDER_CHANGE_LABELS and not is_large_shareholder_change(text, amount, percent):
+            return False, 0.0, "股东增减持未达到大额金额、比例或5%以上股东等优先条件。"
         score = {1: 120.0, 2: 90.0, 3: 75.0, 4: 60.0}[tier]
         return True, score, f"属于第{tier}优先梯队“{label}”；最终材料性仍须结合核心业务/管线和量化结果复核。"
 
