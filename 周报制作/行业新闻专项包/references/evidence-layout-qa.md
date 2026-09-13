@@ -16,6 +16,15 @@ These rules apply to every updated stage.
 - Purple cell borders are the authoritative Excel enclosure. Left and right images are independent: align each image's top/bottom/side purple boundary to its own natural rendered bounds. Move or expand each frame/row boundary (and shift later blocks coherently) rather than resizing the image; never move only one side of a shared separator.
 - For 医药魔方Info evidence, crop only the article top through the lower black boundary of the first paragraph, including the boundary and all content above it; omit everything below.
 
+## Source Screenshot Order
+
+- “按文件本来的顺序” refers to the original source's reading order within each evidence item. PDF/document crops follow ascending source page number and the original reading order within that page; webpage crops follow their position from top to bottom. Preserve the source's column order for multi-column pages. The source title/header precedes later body passages.
+- This is separate from the PPT/item display order. Never substitute filename sorting, directory enumeration, capture/upload time, image insertion/XML order, screenshot height, importance, or the order of extracted PPT clauses for source reading order.
+- Before placement, record each image's source page (or webpage position), crop region, and verified source sequence in the existing evidence mapping. Derive `source_images[]` and `image_order` from that same sequence. If they disagree, resolve the order against the original source before writing.
+- Place separate images in that verified sequence, top-to-bottom first. If the existing layout requires the permitted horizontal fallback, keep the same sequence left-to-right and record the visual traversal order. Moving a frame or changing placement must not reverse the source order. Keep the existing aspect-ratio, spacing, non-stitching, and non-overlap requirements.
+- Normalize each image anchor to its actual row/column and in-cell offset: `0 <= rowOff < actual row height` and `0 <= colOff < actual column width`, in the same units and accounting for hidden rows/columns. An offset crossing a cell boundary must advance the anchor to the destination cell; do not leave all fragments attached to one row with oversized offsets. Keep DrawingML position/extent consistent with the anchor.
+- After saving, reopen the XLSX and map its actual image objects/hashes and absolute rectangles back to the verified source sequence. Render the saved evidence blocks with images visible and confirm title/header → earlier passage/page → later passage/page. A correct array or non-overlap check alone is insufficient; reversed order, cross-item placement, or out-of-cell anchor offsets fail evidence layout QA.
+
 ## Source-Link and Evidence Gate
 
 Create one evidence record per item binding the direct final URL, visible URL text, saved hyperlink target, screenshot path/hash, captured source text/fragments, item index, block geometry, and fallback reason if any.
