@@ -4,7 +4,7 @@
 
 ## 使用
 
-将 `huaxin-weekly-wechat-package` 文件夹放入 Codex 的个人 skills 目录，也可使用仓库内的 `.skill` 打包文件。
+将 `周报公众号发布` 文件夹放入 Codex 的个人 skills 目录，也可使用仓库内的 `.skill` 打包文件。
 
 提供周报 PPTX 后调用：
 
@@ -23,7 +23,7 @@
 - 不生成 ZIP 或其他同级交付文件；临时文件完成检查后删除，最终只保留周报文件夹。
 - 仅制作本地材料，不包含公众号上传或发布操作。
 
-详细流程见 [SKILL.md](huaxin-weekly-wechat-package/SKILL.md)，用户规则见 [规则.md](huaxin-weekly-wechat-package/references/规则.md)。
+详细流程见 [SKILL.md](周报公众号发布/SKILL.md)，用户规则见 [规则.md](周报公众号发布/references/规则.md)。
 
 ## 环境
 
