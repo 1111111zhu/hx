@@ -9,6 +9,17 @@ Deliver one validated PPTX/XLSX pair. JSON and Markdown are intermediate records
 
 For end-to-end industry-news production, read [references/通用规则/配对交付.md](references/通用规则/配对交付.md), then continue from selection through both saved Office files. `scripts/通用/配对产物.py prepare` creates portable working copies and an inventory; `check` rejects unchanged files and selected text/links that were never written. These structural checks do not replace source and visual verification.
 
+## P25-26 公司公告跨页证据：插入前的硬门槛
+
+以下是 `P25-26公司公告` 右侧官方公告证据的强制流程；同一公告跨 PDF 页或需要同页不连续摘录时，优先于任何“紧凑排版”偏好。行业政策中的多图证据也采用同一流程：
+
+1. **先排序，后插图。** 在插入前为每张图写明 `item_id`、`source_page`、`region_order` 和 `sequence`；按 `source_page` 升序、同页按原始阅读顺序排序。文件名、截图时间、下载顺序和 Office 的对象顺序都不能作为页序依据。
+2. **只允许纵向串排。** 同一公告项右侧、该公告 URL 下方的来源图必须从上到下依次为第 1 张、第 2 张……；页面空间不足时，扩展该项紫色框、插入/增高行，并整体下移后续完整公告项。不得改成并排、叠放、覆盖，也不得为了塞进原高度而缩放、裁掉或拼接图片。
+3. **逐张提交坐标。** 插完第 `n` 张并确认其锚点和尺寸后，才可插第 `n+1` 张；第 `n+1` 张的顶部必须在第 `n` 张底部至少 12 px 之后。不得复制上一张图的锚点或让多张图停留在应用默认插入位置。
+4. **保存后按实际位置验收。** 重新打开 XLSX，按图片的实际绝对矩形（不是计划坐标或对象列表）排序并核对 `1 → 2 → …`，同时确认每张图仍在自己的 URL 与紫色底线之间。任意两张图相交、间距不足 12 px、页序倒置，或图片落入相邻公告项，均为 `failed_validation`；修复版式后重新保存和检查，不能交付。
+
+该规则也适用于每一页被裁成多块的情况：先页码、后该页从上到下（多栏时从左到右）的阅读顺序。
+
 ## Start with the Input Contract
 
 For a request to change rules or this skill, edit the instructions only. Generate or repair a report only when the user also requests that deliverable.
