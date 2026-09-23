@@ -1,10 +1,11 @@
 #!/bin/bash
 # 华鑫医药工作台 —— 双击即可启动
+#   0) 如果工作台已经在运行，直接复用并打开页面（不起第二个实例）
 #   1) 启动本地服务（端口从 8765 起，占用自动顺延）
 #   2) 等真实端口就绪后打开浏览器
-#   3) 检查 dsh 是否可用（可选拉起 dsh 会话：WORKBENCH_BOOT_DSH=1）
+#   3) 检查 dsh 是否可用（默认 auto：没有 dsh 在跑才拉起）
 #   4) 检查微信公众号 API 状态，未配置就拉起仓库既成的配置终端
-# 停止：在本终端窗口按 Ctrl+C。
+# 停止：在本终端窗口按 Ctrl+C，或双击同目录的「停止工作台.command」。
 
 set -u
 
@@ -18,12 +19,27 @@ WECHAT_SETUP="$REPO_ROOT/通用文章公众号发布/scripts/setup_local_api.sh"
 
 cd "$REPO_ROOT" 2>/dev/null || { echo "无法进入仓库目录：$REPO_ROOT"; exit 1; }
 mkdir -p "$WORKBENCH_DIR/runs"
-rm -f "$PORT_FILE"
 
 echo "=============================================================="
 echo "  华鑫医药工作台"
 echo "  仓库: $REPO_ROOT"
 echo "=============================================================="
+
+# ---------- 0) 已在运行就复用，不再起第二个 ----------
+# 旧行为：端口被占就顺延到 8766 再起一个实例，于是同时存在两个服务、
+# 两份运行记录、两个页面，状态互相看不见。现在改为复用已有实例。
+if [ -f "$PORT_FILE" ]; then
+  EXISTING_PORT="$(cat "$PORT_FILE" 2>/dev/null || true)"
+  if [ -n "$EXISTING_PORT" ] && \
+     curl -sS -m 2 -o /dev/null "http://127.0.0.1:$EXISTING_PORT/api/frameworks" 2>/dev/null; then
+    echo "工作台已经在运行：http://127.0.0.1:$EXISTING_PORT/"
+    echo "已为你打开页面，本窗口可以直接关闭。"
+    open "http://127.0.0.1:$EXISTING_PORT/" 2>/dev/null || true
+    exit 0
+  fi
+fi
+
+rm -f "$PORT_FILE"
 
 if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
   echo "错误：找不到 $PYTHON_BIN。请先安装 Python 3。"
@@ -34,6 +50,7 @@ echo "Python: $("$PYTHON_BIN" --version 2>&1)"
 # ---------- 1) 启动服务 ----------
 "$PYTHON_BIN" "$WORKBENCH_DIR/server.py" --port 8765 &
 SERVER_PID=$!
+echo "$SERVER_PID" > "$WORKBENCH_DIR/runs/server.pid"
 trap 'kill "$SERVER_PID" 2>/dev/null' INT TERM EXIT
 
 # ---------- 2) 等端口文件，拿到真实端口 ----------

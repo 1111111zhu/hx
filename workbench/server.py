@@ -23,6 +23,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -665,6 +666,8 @@ class RunManager:
         self.runs_dir = runs_dir
         self._lock = threading.Lock()
         self._runs = {}
+        # 运行中的子进程句柄，用于取消。只存内存：服务重启后这些进程已不可达。
+        self._procs = {}
         os.makedirs(self.runs_dir, exist_ok=True)
         self._load_history()
 
@@ -773,6 +776,7 @@ class RunManager:
             "ended_at": None,
             "output": "",
             "error": "",
+            "cancel_requested": False,
         }
 
         if resolved is None:
@@ -827,6 +831,9 @@ class RunManager:
                 errors="replace",
                 bufsize=1,
                 env=env,
+                # 独立进程组：dsh 可能再派生子进程，取消时要整棵树一起停，
+                # 否则会留下孤儿进程继续跑。
+                start_new_session=True,
             )
         except OSError as exc:
             if log_handle:
@@ -838,6 +845,8 @@ class RunManager:
             return self._public(record, include_output=True)
 
         record["pid"] = process.pid
+        with self._lock:
+            self._procs[run_id] = process
         self._save_meta(record)
 
         worker = threading.Thread(
@@ -845,6 +854,56 @@ class RunManager:
         )
         worker.start()
         return self._public(record, include_output=True)
+
+    def cancel(self, run_id: str) -> dict:
+        """停止一个正在运行的 dsh 子进程。
+
+        先发 SIGTERM 给整个进程组，宽限期内没退出再 SIGKILL。
+        真正的状态由 `_consume` 依据 `cancel_requested` 落成 `cancelled`。
+        """
+        with self._lock:
+            record = self._runs.get(run_id)
+            if record is None:
+                return {"ok": False, "error": "找不到该运行记录：%s" % run_id}
+            if record.get("status") != "running":
+                return {"ok": False, "error": "该运行已结束（%s），无需取消。" % record.get("status")}
+            process = self._procs.get(run_id)
+            record["cancel_requested"] = True
+            record["error"] = "正在取消…"
+
+        if process is None:
+            # 服务重启后遗留的 running 记录没有句柄，直接落状态。
+            with self._lock:
+                record["status"] = "cancelled"
+                record["ended_at"] = record.get("ended_at") or _now()
+            self._save_meta(record)
+            return {"ok": True, "id": run_id, "status": "cancelled"}
+
+        self._save_meta(record)
+
+        def _terminate() -> None:
+            try:
+                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+            except OSError:
+                try:
+                    process.terminate()
+                except OSError:
+                    pass
+            try:
+                process.wait(timeout=8)
+                return
+            except subprocess.TimeoutExpired:
+                pass
+            try:
+                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+            except OSError:
+                try:
+                    process.kill()
+                except OSError:
+                    pass
+
+        threading.Thread(target=_terminate, daemon=True).start()
+        return {"ok": True, "id": run_id, "status": "cancelling"}
 
     def _consume(self, run_id: str, process: subprocess.Popen, log_handle) -> None:
         record_ref = self._runs[run_id]
@@ -880,17 +939,27 @@ class RunManager:
                     pass
 
         exit_code = process.wait()
+        with self._lock:
+            self._procs.pop(run_id, None)
         record = self._runs.get(run_id)
         if record is None:
             return
         record["exit_code"] = exit_code
         record["ended_at"] = _now()
-        record["status"] = "succeeded" if exit_code == 0 else "failed"
-        if exit_code != 0 and not record.get("error"):
-            record["error"] = "dsh 退出码 %s，详见输出日志。" % exit_code
+        if record.get("cancel_requested"):
+            # 用户主动取消：不能因为子进程恰好退出码为 0 就报“成功”。
+            # （实测 dsh 收到 SIGTERM 后可能以 0 退出，只看退出码会误报成功。）
+            record["status"] = "cancelled"
+            record["error"] = "已被用户取消。"
+        else:
+            record["status"] = "succeeded" if exit_code == 0 else "failed"
+            if exit_code != 0 and not record.get("error"):
+                record["error"] = "dsh 退出码 %s，详见输出日志。" % exit_code
 
         # 收尾信息必须同时进内存和 .log，否则重启后恢复的输出会缺最后一行。
-        trailer = "\n[workbench] 进程结束，退出码 %s\n" % exit_code
+        trailer = "\n[workbench] 进程结束，退出码 %s%s\n" % (
+            exit_code, "（用户取消）" if record.get("cancel_requested") else ""
+        )
         try:
             with open(self._log_path(run_id), "ab", buffering=0) as tail:
                 self._append(run_id, trailer, tail)
@@ -1103,6 +1172,12 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802 - 基类签名
         path = self.path.split("?", 1)[0]
+
+        if path.startswith("/api/runs/") and path.endswith("/cancel"):
+            run_id = path[len("/api/runs/"):-len("/cancel")]
+            result = RUN_MANAGER.cancel(run_id)
+            self._send_json(200 if result.get("ok") else 409, result)
+            return
 
         if path == "/api/config":
             apply_config_update(self._read_body())

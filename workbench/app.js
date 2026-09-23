@@ -19,7 +19,18 @@ function esc(text) {
 }
 
 function api(path, options) {
-  return fetch(path, options).then(function (res) {
+  return fetch(path, options).catch(function () {
+    // fetch 在网络层失败时抛的是浏览器原生错误（Safari 是 "Load failed"，
+    // Chrome 是 "Failed to fetch"）。直接透传会让用户只看到一句生英文，
+    // 根本不知道是服务没起来。这里换成可操作的中文提示。
+    var err = new Error(
+      '无法连接工作台服务（' + window.location.origin + '），' +
+      '多半是启动它的终端窗口已被关掉。请重新双击仓库根目录的「启动工作台.command」；' +
+      '服务回来后本页会自动重连，不用手动刷新。'
+    );
+    err.network = true;
+    throw err;
+  }).then(function (res) {
     return res.text().then(function (text) {
       var data = {};
       if (text) { try { data = JSON.parse(text); } catch (e) { data = { error: text }; } }
@@ -28,9 +39,31 @@ function api(path, options) {
         err.payload = data;
         throw err;
       }
+      serviceUp();
       return data;
     });
   });
+}
+
+/* 服务连接状态：断开时给一条明确横幅，恢复后自动清掉并补齐状态。 */
+var SERVICE_DOWN = false;
+
+function serviceDown(err) {
+  if (SERVICE_DOWN) { return; }
+  SERVICE_DOWN = true;
+  banner('err',
+    '<b>工作台服务已断开</b><br>' + esc(err.message) +
+    '<br><span class="muted">服务恢复后本页会自动重连。</span>');
+}
+
+function serviceUp() {
+  if (!SERVICE_DOWN) { return; }
+  SERVICE_DOWN = false;
+  banner('ok', '已重新连接工作台服务。');
+  setTimeout(function () { if (!SERVICE_DOWN) { banner(null); } }, 2500);
+  // 断线期间错过的状态，恢复时补齐
+  loadConfig();
+  refreshFrameworks();
 }
 
 function postJSON(path, body) {
@@ -153,7 +186,25 @@ function runBadge(status) {
   if (status === 'running') { return '<span class="badge run">运行中</span>'; }
   if (status === 'succeeded') { return '<span class="badge ok">成功</span>'; }
   if (status === 'failed') { return '<span class="badge err">失败</span>'; }
+  if (status === 'cancelled') { return '<span class="badge warn">已取消</span>'; }
   return '<span class="badge">' + esc(status) + '</span>';
+}
+
+/* 停止一次正在运行的 dsh 任务。dsh 可能已经跑了几分钟，
+   没有这个入口用户只能干等或去 Activity Monitor 里杀进程。 */
+function cancelRun(runId, btn) {
+  if (!confirm('确定停止这次运行？\n\ndsh 子进程会被终止，已产生的输出会保留。')) { return; }
+  var label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '停止中…'; }
+  postJSON('/api/runs/' + encodeURIComponent(runId) + '/cancel', {})
+    .then(function () {
+      banner('ok', '已请求停止 ' + esc(runId) + '，正在收尾…');
+      return refreshRuns();
+    })
+    .catch(function (err) {
+      banner('err', '停止失败：' + esc(err.message));
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    });
 }
 
 function refreshRuns() {
@@ -181,6 +232,10 @@ function refreshRuns() {
           runBadge(run.status) +
           '<span class="id">' + esc(run.id) + '</span>' +
           '<span class="spacer"></span>' +
+          (run.status === 'running'
+            ? '<button class="run-stop" data-run-stop="' + esc(run.id) + '" ' +
+              'title="停止这次运行">停止</button>'
+            : '') +
           '<span class="time">退出码 ' + esc(code) + '</span>' +
           '<span class="time">' + esc(run.started_at) + '</span>' +
         '</div>' +
@@ -194,11 +249,22 @@ function refreshRuns() {
       node.querySelector('[data-run-head]').addEventListener('click', function () {
         expandRun(run.id);
       });
+
+      var stopBtn = node.querySelector('[data-run-stop]');
+      if (stopBtn) {
+        stopBtn.addEventListener('click', function (ev) {
+          // 否则点击会冒泡到 run-head，顺手把面板折叠掉
+          ev.stopPropagation();
+          cancelRun(run.id, stopBtn);
+        });
+      }
+
       list.appendChild(node);
 
       if (run.status === 'running') { pollRun(run.id); }
     });
   }).catch(function (err) {
+    if (err.network) { serviceDown(err); return; }
     banner('err', '无法读取运行列表：' + esc(err.message));
   });
 }
@@ -302,6 +368,7 @@ function showMsg(id, text, kind) {
 
 function loadConfig() {
   return api('/api/config').then(fillConfig).catch(function (err) {
+    if (err.network) { serviceDown(err); return; }
     banner('err', '无法读取配置：' + esc(err.message));
   });
 }
@@ -501,6 +568,7 @@ function bind() {
 
 function refreshFrameworks() {
   return api('/api/frameworks').then(renderFrameworks).catch(function (err) {
+    if (err.network) { serviceDown(err); return; }
     banner('err', '无法读取框架列表：' + esc(err.message));
   });
 }

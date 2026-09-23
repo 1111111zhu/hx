@@ -177,6 +177,15 @@ a.link:hover { text-decoration: underline; }
 .badge.warn { color: var(--warn); border-color: rgba(251, 191, 36, .35); background: rgba(251, 191, 36, .09); }
 .badge.warn::before { background: var(--warn); }
 
+.run-stop {
+  font: inherit; font-size: 12px; line-height: 1;
+  padding: 4px 9px; border-radius: 7px; cursor: pointer;
+  color: #ffd9d9; border: 1px solid rgba(248, 113, 113, .45);
+  background: rgba(248, 113, 113, .12);
+}
+.run-stop:hover:not(:disabled) { background: rgba(248, 113, 113, .22); }
+.run-stop:disabled { opacity: .55; cursor: default; }
+
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 
 /* ---------- 配置面板 ---------- */
@@ -285,8 +294,10 @@ a.link:hover { text-decoration: underline; }
   background: var(--panel-2); color: var(--text-dim);
 }
 .banner.err { color: #ffd9d9; border-color: rgba(248, 113, 113, .45); background: rgba(248, 113, 113, .12); }
+.banner.ok { color: #c7f5d9; border-color: rgba(52, 211, 153, .4); background: rgba(52, 211, 153, .1); }
 .banner.warn { color: #ffeec2; border-color: rgba(251, 191, 36, .4); background: rgba(251, 191, 36, .1); }
 .banner code { font-family: var(--mono); color: #fff; }
+.banner .muted { opacity: .78; }
 .banner[hidden] { display: none; }
 
 footer {

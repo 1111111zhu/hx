@@ -14,6 +14,7 @@ import json
 import mimetypes
 import os
 import platform
+import re
 import secrets
 import subprocess
 import sys
@@ -23,6 +24,29 @@ from pathlib import Path
 
 API = "https://api.weixin.qq.com"
 KEYCHAIN_SERVICE = "codex-wechat-article"
+
+# 公众号 AppID 形如 wx 开头 + 16 位十六进制，共 18 位；AppSecret 为 32 位十六进制。
+# 这两个约束用于在**写入前**挡住明显错误的输入：此前 configure 只检查非空，
+# 结果钥匙串里被存进了 11 位的 "hubo…" 和 9 位的 "0727…" 这类占位串，
+# 之后每次 check-auth 都只能拿到无从解释的 errcode 40013。
+APPID_PATTERN = re.compile(r"^wx[0-9a-fA-F]{16}$")
+APPSECRET_PATTERN = re.compile(r"^[0-9a-fA-F]{32}$")
+
+
+def credential_format_problems(app_id: str, app_secret: str) -> list[str]:
+    """返回人类可读的格式问题清单；空列表表示格式正常。"""
+    problems: list[str] = []
+    if not APPID_PATTERN.match(app_id or ""):
+        problems.append(
+            f"AppID 格式不对：应为 18 位、以 wx 开头（例如 wx0123456789abcdef），"
+            f"当前是 {len(app_id or '')} 位、以 {((app_id or '')[:4] or '空')!r} 开头"
+        )
+    if not APPSECRET_PATTERN.match(app_secret or ""):
+        problems.append(
+            f"AppSecret 格式不对：应为 32 位十六进制字符，当前是 {len(app_secret or '')} 位"
+        )
+    return problems
+
 
 
 def _keychain_get(account: str) -> str | None:
@@ -108,6 +132,15 @@ def configure(_: argparse.Namespace) -> None:
     app_secret = getpass.getpass("公众号 AppSecret：").strip()
     if not app_id or not app_secret:
         raise RuntimeError("AppID 和 AppSecret 都不能为空")
+
+    problems = credential_format_problems(app_id, app_secret)
+    if problems:
+        raise RuntimeError(
+            "凭证格式校验未通过，已拒绝写入钥匙串：\n  - "
+            + "\n  - ".join(problems)
+            + "\n请到公众号后台「设置与开发 → 基本配置」复制正确的 AppID 与 AppSecret 后重试。"
+        )
+
     if platform.system() == "Darwin":
         _keychain_set("WECHAT_OFFICIAL_APP_ID", app_id)
         _keychain_set("WECHAT_OFFICIAL_APP_SECRET", app_secret)
@@ -119,6 +152,22 @@ def configure(_: argparse.Namespace) -> None:
 
 
 def check_auth(_: argparse.Namespace) -> None:
+    # 先做本地格式校验：钥匙串里若已存着占位串，直接说清楚问题，
+    # 而不是把一个无从解释的 errcode 40013 抛给使用者。
+    try:
+        app_id = credential("WECHAT_OFFICIAL_APP_ID")
+        app_secret = credential("WECHAT_OFFICIAL_APP_SECRET")
+    except RuntimeError as exc:
+        raise RuntimeError(str(exc)) from exc
+
+    problems = credential_format_problems(app_id, app_secret)
+    if problems:
+        raise RuntimeError(
+            "本机保存的公众号凭证格式不对，无法换取 access_token：\n  - "
+            + "\n  - ".join(problems)
+            + "\n请运行 `python3 scripts/wechat_draft_api.py configure` 重新录入正确凭证。"
+        )
+
     token = access_token()
     print(json.dumps({"ok": True, "access_token_received": bool(token), "token_value": "[redacted]"}, ensure_ascii=False))
 
