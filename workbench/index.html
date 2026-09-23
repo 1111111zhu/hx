@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>华鑫医药工作台</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">华</div>
+      <div>
+        <h1>华鑫医药工作台</h1>
+        <div class="sub">本地 skill 控制台 · 周报制作 / 周报公众号发布 / 通用文章公众号发布</div>
+      </div>
+    </div>
+    <div class="top-meta">
+      <span>仓库 <code id="repo-root">…</code></span>
+      <span id="dsh-meta">dsh …</span>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- ============ 框架 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>框架</h2>
+      <span class="note">点击「启动」会以 <code>dsh --profile headless "&lt;提示词&gt;"</code> 在仓库根目录跑一次 one-shot 任务，输出实时回显到下方运行日志。</span>
+    </div>
+    <div id="fw-grid" class="fw-grid">
+      <div class="empty">正在载入框架…</div>
+    </div>
+  </section>
+
+  <!-- ============ API 配置 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>API 配置</h2>
+      <span class="note">保存在 <code>workbench/config.json</code>（已被 .gitignore 忽略），密钥只回显后 4 位。</span>
+    </div>
+
+    <div class="cfg-grid">
+      <!-- DeepSeek -->
+      <div class="card">
+        <div class="cfg-head">
+          <div>
+            <h3>DeepSeek</h3>
+            <div class="sub">用于模型调用</div>
+          </div>
+          <span id="badge-deepseek" class="badge">未连接</span>
+        </div>
+
+        <div class="field">
+          <label for="ds-base">base_url</label>
+          <input id="ds-base" type="text" placeholder="https://api.deepseek.com" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="ds-key">api_key</label>
+          <input id="ds-key" type="password" placeholder="sk-…（留空则不修改已保存的值）" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="ds-model">model</label>
+          <input id="ds-model" type="text" placeholder="deepseek-chat" autocomplete="off">
+        </div>
+
+        <div class="cfg-actions">
+          <button class="primary" id="ds-save">保存</button>
+          <button id="ds-test">测试连接</button>
+          <button id="ds-clear" title="清空已保存的 api_key">清除密钥</button>
+        </div>
+        <div id="ds-msg" class="cfg-msg" hidden></div>
+      </div>
+
+      <!-- 微信公众号 -->
+      <div class="card">
+        <div class="cfg-head">
+          <div>
+            <h3>微信公众号</h3>
+            <div class="sub">复用仓库既成凭证机制，密钥不进 config.json、不经网页传输</div>
+          </div>
+          <span id="badge-wechat" class="badge warn">待配置</span>
+        </div>
+
+        <div class="credbox">
+          <div class="credrow">
+            <span class="k">凭证存放</span>
+            <span class="v">macOS 钥匙串 <code>codex-wechat-article</code>，取不到时回退环境变量
+              <code>WECHAT_OFFICIAL_APP_ID</code> / <code>WECHAT_OFFICIAL_APP_SECRET</code></span>
+          </div>
+          <div class="credrow">
+            <span class="k">校验脚本</span>
+            <span class="v"><code>通用文章公众号发布/scripts/wechat_draft_api.py check-auth</code></span>
+          </div>
+          <div class="credrow">
+            <span class="k">配置入口</span>
+            <span class="v"><code>通用文章公众号发布/scripts/setup_local_api.sh</code>（交互式，仅在终端里输入）</span>
+          </div>
+        </div>
+
+        <p class="hint-note">
+          工作台不接收也不显示 AppID / AppSecret；「打开配置终端」只会拉起上面的脚本，
+          由你在终端里亲自输入，完成后再点「刷新状态」。
+        </p>
+
+        <div class="cfg-actions">
+          <button class="primary" id="wc-configure">打开配置终端</button>
+          <button id="wc-test">刷新状态（check-auth）</button>
+        </div>
+        <div id="wc-msg" class="cfg-msg" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 运行环境 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>运行环境</h2>
+      <span class="note">工作台调用 dsh 的方式。若自动探测不到，可在这里手填真实路径。</span>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label for="dsh-command">dsh 可执行文件</label>
+        <input id="dsh-command" type="text" placeholder="/opt/homebrew/bin/dsh" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="dsh-profile">profile</label>
+        <input id="dsh-profile" type="text" placeholder="headless" autocomplete="off">
+      </div>
+      <div class="cfg-actions">
+        <button class="primary" id="dsh-save">保存</button>
+        <button id="dsh-recheck">重新探测</button>
+      </div>
+      <div id="dsh-msg" class="cfg-msg" hidden></div>
+    </div>
+  </section>
+
+  <!-- ============ 运行日志 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>运行日志</h2>
+      <span class="note">点击任意一条展开完整输出。</span>
+    </div>
+    <div class="run-toolbar">
+      <button class="ghost" id="runs-refresh">刷新列表</button>
+      <span class="note" id="runs-auto">自动刷新：开</span>
+    </div>
+    <div id="run-list" class="run-list">
+      <div class="empty">暂无运行记录。</div>
+    </div>
+  </section>
+
+  <footer>
+    <span>华鑫医药工作台 · 纯 Python 3 标准库 + 本地静态资源，可断网使用</span>
+    <span>服务地址 <code id="svc-url">…</code></span>
+  </footer>
+
+</div>
+<script src="/app.js"></script>
+</body>
+</html>

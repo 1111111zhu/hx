@@ -1,30 +1,54 @@
 # hx
 
-华鑫医药周报公众号 Word 与图片素材包制作 skill。
+华鑫医药内容生产技能库 + 本地工作台。
 
-## 使用
+仓库包含三个主工作流（框架）与一个把它们打包起来的本地网页控制台。
 
-将 `周报公众号发布` 文件夹放入 Codex 的个人 skills 目录，也可使用仓库内的 `.skill` 打包文件。
+| 框架 | 目录 | 入口 | 产出 |
+|---|---|---|---|
+| 周报制作 | `周报制作/` | [SKILL.md](周报制作/SKILL.md) | PPTX + XLSX 配对周报 |
+| 周报公众号发布 | `周报公众号发布/` | [SKILL.md](周报公众号发布/SKILL.md) | 按日期命名的周报文件夹（`文字.docx` + 全部 PNG） |
+| 通用文章公众号发布 | `通用文章公众号发布/` | [SKILL.md](通用文章公众号发布/SKILL.md) | 公众号正文、首图、草稿 |
 
-提供周报 PPTX 后调用：
+## 一键启动工作台
 
-```text
-用 $huaxin-weekly-wechat-package 生成这份周报的 Word 和素材包。
+```bash
+./workbench/启动工作台.command
 ```
 
-输出仅为一个按日期命名的周报文件夹，内含 `文字.docx`、合规说明图和全部报告页 PNG。
+macOS 上也可直接在 Finder 里双击 `workbench/启动工作台.command`。它会启动本地服务、自动打开浏览器，并同时拉起 `dsh`。
 
-## 固定规则
+工作台里可以：切换三个框架并一键触发任务、配置 DeepSeek 与微信公众号两套 API、查看每次运行的状态与输出。详见 [workbench/README.md](workbench/README.md)。
+
+## API 配置
+
+工作台有两个留空的 API 槽位，初始状态为"未连接"，在页面里填写后保存到 `workbench/config.json`（已被 git 忽略，不会入库）：
+
+- **DeepSeek**：`base_url`、`api_key`、`model`。页面上有"测试连接"按钮。
+- **微信公众号**：`app_id`、`app_secret`，对应 `WECHAT_OFFICIAL_APP_ID` / `WECHAT_OFFICIAL_APP_SECRET`。
+
+模板见 `workbench/config.example.json` 与 `通用文章公众号发布/.env.example`。真实凭证一律不要提交到 GitHub。
+
+## 周报公众号发布的固定规则
 
 - 合规说明文字整体居中，首行距上边框与末行距下边框留白相等。
 - Word 末尾保留报告链接和联系人胡博新；无链接时留空，正常生成与交付。
-- 保留所有原报告页；报告页和合规说明图从打开的 Microsoft PowerPoint 幻灯片放映画面截图，并检查字体与版式。
+- 保留所有原报告页；报告页和合规说明图**必须打开 PowerPoint 进入幻灯片放映后截图**，不得用 Preview / Quick Look / Finder 预览 / LibreOffice / PDF 转图替代，并检查字体与版式。
+- 放映截图必须产出 `slideshow_capture.json` 并通过 `周报公众号发布/scripts/幻灯片截图核验.py` 核验（退出码 0）才能交付。
 - 除逐页放映截图外，导出、渲染、裁切和检查均在后台运行。
 - 不生成 ZIP 或其他同级交付文件；临时文件完成检查后删除，最终只保留周报文件夹。
 - 仅制作本地材料，不包含公众号上传或发布操作。
 
 详细流程见 [SKILL.md](周报公众号发布/SKILL.md)，用户规则见 [规则.md](周报公众号发布/references/规则.md)。
 
+## 周报制作的证据版式硬规则
+
+- **多图必须分开、纵向独立排列。** 同一证据项有多张来源截图时，必须作为独立 picture object **严格由上到下**排列，相邻两图可见间距**至少 12 px**；不得并排、叠放、覆盖、拼接、缩放塞入。空间不足时扩大紫色框、插入/增高行并整体下移后续项。
+- 保存后必须重开 XLSX 并按图片**实际绝对矩形**复检，然后运行 `周报制作/scripts/通用/证据图片版式核验.py`；退出码非 0 不得交付。
+- **研究成果阶段不可跳过。** 每次全量刷新都必须从当次授权的 `医药新观` 导出重新抓取并重建 worksheet 1 `Research Results`，不得沿用模板或上周的行；详见 [研究成果规则.md](周报制作/references/研究成果/研究成果规则.md)。
+
 ## 环境
 
-此流程面向 macOS 和 Microsoft PowerPoint。报告图片必须从 PowerPoint 幻灯片放映画面截图，不能以其他预览或渲染结果替代；需要 Word 创建、后台渲染与图片检查工具。合规模板已包含在 skill 的 assets 目录中。
+面向 macOS。报告图片必须从 PowerPoint 幻灯片放映画面截图，不能以其他预览或渲染结果替代；需要 Word 创建、后台渲染与图片检查工具。合规模板已包含在 skill 的 assets 目录中。
+
+工作台只用系统 Python 3 标准库，不需要 pip / npm 安装任何依赖。

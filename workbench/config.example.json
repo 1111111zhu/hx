@@ -1,0 +1,20 @@
+{
+  "_note": "占位示例，可安全提交。复制为 config.json 后工作台会读它；config.json 已被 .gitignore 忽略。微信公众号的 AppID/AppSecret 不在这里，见 README。",
+  "deepseek": {
+    "base_url": "https://api.deepseek.com",
+    "api_key": "",
+    "model": "deepseek-chat"
+  },
+  "dsh": {
+    "command": "/opt/homebrew/bin/dsh",
+    "profile": "headless",
+    "extra_args": [],
+    "timeout_sec": 0
+  },
+  "status": {
+    "deepseek": "未连接",
+    "deepseek_message": "",
+    "wechat": "待配置",
+    "wechat_message": ""
+  }
+}
