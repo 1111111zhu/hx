@@ -13,10 +13,13 @@
 ## 一键启动工作台
 
 ```bash
+./启动工作台.command          # 顶层入口（等价于下面那条）
 ./workbench/启动工作台.command
 ```
 
-macOS 上也可直接在 Finder 里双击 `workbench/启动工作台.command`。它会启动本地服务、自动打开浏览器，并同时拉起 `dsh`。
+macOS 上可直接在 Finder 里双击任一 `启动工作台.command`（顶层那个就是为解压后一眼可见而放的薄封装）。它会启动本地服务、自动打开浏览器、检查并按需拉起 `dsh`，再检查微信公众号 API 状态。
+
+`dsh` 的拉起策略默认是 `auto`：检测到 `http://127.0.0.1:3080` 上已有 dsh 在跑就跳过，避免抢端口；设 `WORKBENCH_BOOT_DSH=1` 强制拉起、`=0` 完全跳过。
 
 工作台里可以：切换三个框架并一键触发任务、配置 DeepSeek 与微信公众号两套 API、查看每次运行的状态与输出。详见 [workbench/README.md](workbench/README.md)。
 

@@ -96,7 +96,13 @@ def build(name: str, src_rel: str, out_rel: str, top: str) -> int:
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         for path in files:
             arcname = f"{top}/{path.relative_to(src).as_posix()}"
-            zf.write(path, arcname)
+            # 固定时间戳，让打包**可复现**：否则每次重打都因 zip 元数据不同而
+            # 产生一个 21MB 的二进制 diff，白白撑大仓库。
+            info = zipfile.ZipInfo(arcname, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = (path.stat().st_mode & 0xFFFF) << 16
+            with open(path, "rb") as fh:
+                zf.writestr(info, fh.read())
 
     # 校验 UTF-8 标志位：含非 ASCII 的条目必须置位，否则解压出来是乱码
     with zipfile.ZipFile(tmp) as zf:
